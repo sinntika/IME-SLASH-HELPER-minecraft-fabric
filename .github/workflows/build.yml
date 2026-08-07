@@ -6,6 +6,9 @@ name: Build all versions
   workflow_dispatch:
   release:
     types: [published]
+permissions:
+  contents: read
+  issues: write
 jobs:
   legacy:
     runs-on: ubuntu-latest
@@ -27,10 +30,23 @@ jobs:
           JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
         run: |
           set -eux
-          gradle --version
+          set -o pipefail
+          gradle --version 2>&1 | tee -a build-legacy.log
           for v in 1.20.1 1.20.4 1.20.6 1.21.1 1.21.4 1.21.8 1.21.11; do
-            gradle -p legacy --no-daemon --stacktrace ":$v:build"
+            gradle -p legacy --no-daemon --stacktrace ":$v:build" 2>&1 | tee -a build-legacy.log
           done
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/report-failure.sh legacy build-legacy.log
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-legacy
+          path: build-legacy.log
+          if-no-files-found: ignore
       - name: Collect jars
         if: always()
         run: |
@@ -65,10 +81,23 @@ jobs:
           JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
         run: |
           set -eux
-          gradle --version
+          set -o pipefail
+          gradle --version 2>&1 | tee -a build-modern.log
           for v in 26.1.2; do
-            gradle -p modern --no-daemon --stacktrace ":$v:build"
+            gradle -p modern --no-daemon --stacktrace ":$v:build" 2>&1 | tee -a build-modern.log
           done
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/report-failure.sh modern build-modern.log
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-modern
+          path: build-modern.log
+          if-no-files-found: ignore
       - name: Collect jars
         if: always()
         run: |
@@ -92,6 +121,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: ime-slash-helper-*
           merge-multiple: true
       - name: Attach jars to release
         uses: softprops/action-gh-release@v2
