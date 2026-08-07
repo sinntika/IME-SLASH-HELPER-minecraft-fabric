@@ -20,13 +20,14 @@ sourceSets.named("main") {
 }
 
 repositories {
+    maven("https://maven.fabricmc.net/") { name = "Fabric" }
     mavenCentral()
 }
 
 dependencies {
     minecraft("com.mojang:minecraft:$mcVersion")
     mappings(loom.officialMojangMappings())
-    implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
+    modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
 
     // JNA は Minecraft 本体が同梱しているので compileOnly。
     // 環境によっては jar-in-jar で同梱する（下の include を有効化）。
