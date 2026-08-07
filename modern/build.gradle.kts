@@ -12,7 +12,6 @@ base {
     archivesName.set("${property("archives_base_name")}-$mcVersion")
 }
 
-// 共通ソースツリー（リポジトリ直下の src/）を参照する
 val sharedSrc = rootDir.parentFile.resolve("src")
 sourceSets.named("main") {
     java.setSrcDirs(listOf(sharedSrc.resolve("main/java")))
@@ -26,13 +25,9 @@ repositories {
 
 dependencies {
     minecraft("com.mojang:minecraft:$mcVersion")
-    modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-
-    // JNA は Minecraft 本体が同梱しているので compileOnly。
-    // 環境によっては jar-in-jar で同梱する（下の include を有効化）。
+    implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     compileOnly("net.java.dev.jna:jna:${property("jna_version")}")
     compileOnly("net.java.dev.jna:jna-platform:${property("jna_version")}")
-    // include(implementation("net.java.dev.jna:jna:${property("jna_version")}")!!)
 }
 
 val expandProps = mapOf(
@@ -57,12 +52,4 @@ java {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.release.set(modJava)
-}
-
-loom {
-    runs {
-        named("client") {
-            vmArg("--enable-native-access=ALL-UNNAMED")
-        }
-    }
 }

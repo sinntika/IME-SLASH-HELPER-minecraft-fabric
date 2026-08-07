@@ -61,6 +61,11 @@ jobs:
           name: ime-slash-helper-legacy
           path: dist/*.jar
           if-no-files-found: warn
+      - name: Report success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/report-success.sh legacy
   modern:
     runs-on: ubuntu-latest
     steps:
@@ -112,6 +117,11 @@ jobs:
           name: ime-slash-helper-modern
           path: dist/*.jar
           if-no-files-found: warn
+      - name: Report success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/report-success.sh modern
   release:
     if: github.event_name == 'release'
     needs: [legacy, modern]
