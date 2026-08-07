@@ -1,23 +1,23 @@
 name: Build all versions
-​
-on:
+"on":
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
   workflow_dispatch:
   release:
-    types: [ published ]
+    types: [published]
 ​
 jobs:
   build:
-    # legacy と modern は共通 src/ を書き換えるため、同一 job 内で逐次実行する
+    # legacy and modern rewrite the shared src/ tree, so run them
+    # sequentially inside a single job. Never parallelize them.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 ​
-      # 重要: setup-java は「最後に書いたバージョン」を JAVA_HOME にする。
-      # Gradle 8.12 は JDK 25 で起動できないので、既定を 21 にしておく。
-      - name: Set up JDKs (25 / 17 / 21)
+      # setup-java sets JAVA_HOME to the LAST version listed.
+      # Gradle 8.12 cannot run on JDK 25, so make 21 the default.
+      - name: Set up JDKs
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -33,10 +33,11 @@ jobs:
         with:
           gradle-version: "8.12"
 ​
-      # プロジェクト内で `gradle wrapper` を実行すると settings.gradle.kts が評価され、
-      # Stonecutter / foojay プラグインが意図しない Gradle バージョンで解決されて失敗する。
-      # 空のディレクトリで wrapper を生成し、gradlew と gradle-wrapper.jar だけをコピーする
-      # （distributionUrl はリポジトリ同梱の gradle-wrapper.properties を使うので上書きしない）。
+      # Running `gradle wrapper` inside the project would evaluate
+      # settings.gradle.kts and resolve Stonecutter/foojay with the wrong
+      # Gradle version. Generate the wrapper in an empty directory instead
+      # and copy only gradlew + gradle-wrapper.jar, keeping the committed
+      # gradle-wrapper.properties (which pins 8.12 and 9.4).
       - name: Bootstrap Gradle wrappers
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
@@ -57,17 +58,17 @@ jobs:
           cat legacy/gradle/wrapper/gradle-wrapper.properties
           cat modern/gradle/wrapper/gradle-wrapper.properties
 ​
-      - name: Build legacy (1.20.x / 1.21.x)
+      - name: Build legacy (1.20.x and 1.21.x)
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
-        run: ./gradlew --no-daemon --stacktrace collectJars
         working-directory: legacy
+        run: ./gradlew --no-daemon --stacktrace collectJars
 ​
       - name: Build modern (26.x)
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
-        run: ./gradlew --no-daemon --stacktrace collectJars
         working-directory: modern
+        run: ./gradlew --no-daemon --stacktrace collectJars
 ​
       - name: List artifacts
         if: always()
@@ -81,9 +82,9 @@ jobs:
           path: dist/*.jar
           if-no-files-found: warn
 ​
-      # リリースを publish したときは jar を自動添付する
       - name: Attach jars to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.jar
+​
