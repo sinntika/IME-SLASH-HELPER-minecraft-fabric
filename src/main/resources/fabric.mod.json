@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "imeslash",
+  "version": "${version}",
+  "name": "IME Slash Helper",
+  "description": "日本語入力中に / を押すと半角にして IME を OFF、Enter で日本語入力に自動復帰します。",
+  "authors": ["you"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.example.imeslash.ImeSlashClient"]
+  },
+  "mixins": [
+    {
+      "config": "imeslash.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "${minecraft_dependency}",
+    "java": ">=${java_version}"
+  }
+}

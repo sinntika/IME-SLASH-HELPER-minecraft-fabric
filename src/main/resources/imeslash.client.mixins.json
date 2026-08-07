@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.example.imeslash.mixin.client",
+  "compatibilityLevel": "${mixin_compat}",
+  "client": [
+    "ChatScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
