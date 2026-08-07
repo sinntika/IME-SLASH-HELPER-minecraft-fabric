@@ -34,16 +34,17 @@ dependencies {
     // include(implementation("net.java.dev.jna:jna:${property("jna_version")}")!!)
 }
 
+val expandProps = mapOf(
+    "version" to version.toString(),
+    "minecraft_dependency" to (project.property("minecraft_dependency") as String),
+    "mixin_compat" to (project.property("mixin_compat") as String),
+    "java_version" to (project.property("mod_java") as String)
+)
+
 tasks.processResources {
-    val props = mapOf(
-        "version" to project.version.toString(),
-        "minecraft_dependency" to property("minecraft_dependency"),
-        "mixin_compat" to property("mixin_compat"),
-        "java_version" to property("mod_java")
-    )
-    inputs.properties(props)
+    inputs.properties(expandProps)
     filesMatching(listOf("fabric.mod.json", "imeslash.client.mixins.json")) {
-        expand(props)
+        expand(expandProps)
     }
 }
 
