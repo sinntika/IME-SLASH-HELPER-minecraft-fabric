@@ -17,10 +17,10 @@ jobs:
         with:
           distribution: temurin
           java-version: "25\n17\n21\n"
-      - name: Set up Gradle 8.12 for legacy
+      - name: Set up Gradle 8.14.3 for legacy
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.12"
+          gradle-version: "8.14.3"
           cache-disabled: true
       - name: Build legacy
         env:
