@@ -17,19 +17,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "25\n17\n21\n"
-      - name: Diagnostics
-        continue-on-error: true
-        run: |
-          echo "--- java related env ---"
-          env | grep -i -E '^JAVA' | sort || true
-          echo "--- default java ---"
-          java -version 2>&1 || true
-          echo "--- repo tree ---"
-          ls -la
-          ls -la legacy modern || true
-          echo "--- wrapper properties ---"
-          cat legacy/gradle/wrapper/gradle-wrapper.properties || true
-          cat modern/gradle/wrapper/gradle-wrapper.properties || true
       - name: Set up Gradle 8.12 for legacy
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -40,10 +27,10 @@ jobs:
           JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
         run: |
           set -eux
-          echo "JAVA_HOME=$JAVA_HOME"
-          "$JAVA_HOME/bin/java" -version
           gradle --version
-          gradle -p legacy --no-daemon --stacktrace collectJars
+          for v in 1.20.1 1.20.4 1.20.6 1.21.1 1.21.4 1.21.8 1.21.11; do
+            gradle -p legacy --no-daemon --stacktrace ":$v:build"
+          done
       - name: Set up Gradle 9.4 for modern
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -54,13 +41,17 @@ jobs:
           JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
         run: |
           set -eux
-          echo "JAVA_HOME=$JAVA_HOME"
-          "$JAVA_HOME/bin/java" -version
           gradle --version
-          gradle -p modern --no-daemon --stacktrace collectJars
-      - name: List artifacts
+          for v in 26.1.2; do
+            gradle -p modern --no-daemon --stacktrace ":$v:build"
+          done
+      - name: Collect jars
         if: always()
-        run: ls -la dist || true
+        run: |
+          set -eux
+          mkdir -p dist
+          find legacy/versions modern/versions -type f -path "*/build/libs/*.jar" ! -name "*-sources.jar" ! -name "*-dev.jar" ! -name "*-dev-shadow.jar" -exec cp -f {} dist/ \; || true
+          ls -la dist || true
       - name: Upload jars
         if: always()
         uses: actions/upload-artifact@v4
