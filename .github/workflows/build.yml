@@ -17,44 +17,50 @@ jobs:
         with:
           distribution: temurin
           java-version: "25\n17\n21\n"
-      - name: Set up Gradle
+      - name: Diagnostics
+        continue-on-error: true
+        run: |
+          echo "--- java related env ---"
+          env | grep -i -E '^JAVA' | sort || true
+          echo "--- default java ---"
+          java -version 2>&1 || true
+          echo "--- repo tree ---"
+          ls -la
+          ls -la legacy modern || true
+          echo "--- wrapper properties ---"
+          cat legacy/gradle/wrapper/gradle-wrapper.properties || true
+          cat modern/gradle/wrapper/gradle-wrapper.properties || true
+      - name: Set up Gradle 8.12 for legacy
         uses: gradle/actions/setup-gradle@v4
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
         with:
           gradle-version: "8.12"
-      - name: Bootstrap Gradle wrappers
+          cache-disabled: true
+      - name: Build legacy
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
         run: |
           set -eux
-          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
+          "$JAVA_HOME/bin/java" -version
           gradle --version
-          rm -rf /tmp/wrapper-gen
-          mkdir -p /tmp/wrapper-gen
-          (cd /tmp/wrapper-gen && gradle --no-daemon wrapper)
-          for d in legacy modern; do
-            mkdir -p "$d/gradle/wrapper"
-            cp /tmp/wrapper-gen/gradlew "$d/gradlew"
-            cp /tmp/wrapper-gen/gradlew.bat "$d/gradlew.bat"
-            cp /tmp/wrapper-gen/gradle/wrapper/gradle-wrapper.jar "$d/gradle/wrapper/gradle-wrapper.jar"
-            chmod +x "$d/gradlew"
-          done
-          cat legacy/gradle/wrapper/gradle-wrapper.properties
-          cat modern/gradle/wrapper/gradle-wrapper.properties
-      - name: Build legacy
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
-        working-directory: legacy
-        run: ./gradlew --no-daemon --stacktrace collectJars
+          gradle -p legacy --no-daemon --stacktrace collectJars
+      - name: Set up Gradle 9.4 for modern
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.4"
+          cache-disabled: true
       - name: Build modern
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
-        working-directory: modern
-        run: ./gradlew --no-daemon --stacktrace collectJars
+        run: |
+          set -eux
+          echo "JAVA_HOME=$JAVA_HOME"
+          "$JAVA_HOME/bin/java" -version
+          gradle --version
+          gradle -p modern --no-daemon --stacktrace collectJars
       - name: List artifacts
         if: always()
-        run: ls -1 dist || true
+        run: ls -la dist || true
       - name: Upload jars
         if: always()
         uses: actions/upload-artifact@v4
