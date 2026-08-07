@@ -7,7 +7,7 @@ name: Build all versions
   release:
     types: [published]
 jobs:
-  build:
+  legacy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,8 +16,8 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "25\n17\n21\n"
-      - name: Set up Gradle 8.14.3 for legacy
+          java-version: "17\n21\n"
+      - name: Set up Gradle 8.14.3
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.3"
@@ -31,10 +31,34 @@ jobs:
           for v in 1.20.1 1.20.4 1.20.6 1.21.1 1.21.4 1.21.8 1.21.11; do
             gradle -p legacy --no-daemon --stacktrace ":$v:build"
           done
-      - name: Set up Gradle 9.4 for modern
+      - name: Collect jars
+        if: always()
+        run: |
+          set -eux
+          mkdir -p dist
+          find legacy/versions -type f -path "*/build/libs/*.jar" ! -name "*-sources.jar" ! -name "*-dev.jar" ! -name "*-dev-shadow.jar" -exec cp -f {} dist/ \; || true
+          ls -la dist || true
+      - name: Upload jars
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ime-slash-helper-legacy
+          path: dist/*.jar
+          if-no-files-found: warn
+  modern:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up JDKs
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21\n25\n"
+      - name: Set up Gradle 9.5.1
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "9.4"
+          gradle-version: "9.5.1"
           cache-disabled: true
       - name: Build modern
         env:
@@ -50,17 +74,26 @@ jobs:
         run: |
           set -eux
           mkdir -p dist
-          find legacy/versions modern/versions -type f -path "*/build/libs/*.jar" ! -name "*-sources.jar" ! -name "*-dev.jar" ! -name "*-dev-shadow.jar" -exec cp -f {} dist/ \; || true
+          find modern/versions -type f -path "*/build/libs/*.jar" ! -name "*-sources.jar" ! -name "*-dev.jar" ! -name "*-dev-shadow.jar" -exec cp -f {} dist/ \; || true
           ls -la dist || true
       - name: Upload jars
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ime-slash-helper-all
+          name: ime-slash-helper-modern
           path: dist/*.jar
           if-no-files-found: warn
+  release:
+    if: github.event_name == 'release'
+    needs: [legacy, modern]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
       - name: Attach jars to release
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.jar
