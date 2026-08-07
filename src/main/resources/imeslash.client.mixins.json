@@ -3,7 +3,8 @@
   "package": "com.example.imeslash.mixin.client",
   "compatibilityLevel": "${mixin_compat}",
   "client": [
-    "ChatScreenMixin"
+    "ChatScreenMixin",
+    "MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1

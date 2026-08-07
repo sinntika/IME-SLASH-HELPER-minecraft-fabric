@@ -6,12 +6,13 @@ import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 
-import net.minecraft.client.Minecraft;
-
 /**
  * Windows の IMM32 API を JNA 経由で叩くラッパー。
  * Windows 以外や JNA をロードできない環境では isAvailable() が false になり、
  * 全メソッドが安全な no-op になる。
+ *
+ * ウィンドウハンドルの取得には Minecraft の Window クラスを使わず、
+ * GLFW の glfwGetCurrentContext() を使う（全バージョンで API が変わらないため）。
  */
 public final class WinIme {
 
@@ -65,8 +66,11 @@ public final class WinIme {
 
     private static Pointer hwnd() {
         try {
-            long handle = org.lwjgl.glfw.GLFWNativeWin32.glfwGetWin32Window(
-                    Minecraft.getInstance().getWindow().getWindow());
+            long glfwWindow = org.lwjgl.glfw.GLFW.glfwGetCurrentContext();
+            if (glfwWindow == 0L) {
+                return null;
+            }
+            long handle = org.lwjgl.glfw.GLFWNativeWin32.glfwGetWin32Window(glfwWindow);
             return handle == 0L ? null : new Pointer(handle);
         } catch (Throwable t) {
             return null;
@@ -89,7 +93,6 @@ public final class WinIme {
                 IMM32.ImmReleaseContext(hWnd, hIMC);
             }
         }
-        // フォールバック: デフォルト IME ウィンドウに問い合わせる
         Pointer ime = IMM32.ImmGetDefaultIMEWnd(hWnd);
         if (ime == null || Pointer.nativeValue(ime) == 0L) {
             return false;
