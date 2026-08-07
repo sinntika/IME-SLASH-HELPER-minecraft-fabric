@@ -122,10 +122,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/report-success.sh modern
-  release:
-    if: github.event_name == 'release'
+  publish:
     needs: [legacy, modern]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -133,7 +134,13 @@ jobs:
           path: dist
           pattern: ime-slash-helper-*
           merge-multiple: true
-      - name: Attach jars to release
+      - name: List jars
+        run: ls -la dist
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'release' && github.event.release.tag_name || 'latest' }}
+          name: ${{ github.event_name == 'release' && github.event.release.tag_name || 'Latest build' }}
+          body: Automatic build of commit ${{ github.sha }}
           files: dist/*.jar
+          fail_on_unmatched_files: true
